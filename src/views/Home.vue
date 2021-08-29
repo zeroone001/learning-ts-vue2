@@ -11,6 +11,7 @@
         :key="index"
         :item="item"
         :num="item.age"
+        :numberIndexs="numberIndexs"
         @handleSave="handleSave"
       ></todo>
     </ul>
@@ -52,8 +53,10 @@ export default class Home extends Vue {
   // ];
   public editIndex = -1;
 
+  public numberIndexs: number = 1;
   public handleSave(item: string): void {
     console.log(item);
+    this.numberIndexs++;
   }
 }
 </script>

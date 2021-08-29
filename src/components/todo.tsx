@@ -1,4 +1,4 @@
-import { Component, Prop, Vue, Watch } from 'vue-property-decorator';
+import { Component, Emit, Prop, Vue, Watch } from 'vue-property-decorator';
 import './todo.scss';
 
 interface Item {
@@ -15,18 +15,23 @@ export default class Todo extends Vue {
     @Prop(Object) public item!: Item;
     @Prop(Number) public num!: number;
 
-    public numberIndexs: number = 1;
+    @Prop(Number)
+    public numberIndexs!: number;
+
+    // public numberIndexs: number = 1;
     public theModel: string = '111';
 
-    @Watch('numberIndexs')
+    @Watch('numberIndexs', { immediate: true, deep: true })
     public handleWatch(index: number): void {
         console.log('index---->', this.numberIndexs);
     }
+    @Emit('handleSave')
+    public handleSaveEvent() {
+        return '12312321';
+    }
 
     public clickEvent(that: any): void {
-        console.log('123', that);
-        this.numberIndexs++;
-        // this.$emit('handleSave', '12312321');
+        this.handleSaveEvent();
     }
 
     protected render() {
