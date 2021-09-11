@@ -29,3 +29,24 @@ npm run lint
 
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
+
+
+
+## vue2 源码教程资料
+
+
+
+* [Vue.js 技术揭秘](https://ustbhuangyi.github.io/vue-analysis/v2/prepare/)
+
+
+
+
+
+
+
+
+
+
+
+
+
