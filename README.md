@@ -37,6 +37,9 @@ See [Configuration Reference](https://cli.vuejs.org/config/).
 
 
 * [Vue.js 技术揭秘](https://ustbhuangyi.github.io/vue-analysis/v2/prepare/)
+* [vue-analysis](https://github.com/ustbhuangyi/vue-analysis)
+* [推荐 7 个 Vue2、Vue3 源码解密分析的重磅开源项目](https://juejin.cn/post/6942492146725290020)
+* [vue-family-mindmap](https://github.com/biaochenxuying/vue-family-mindmap)
 
 
 
