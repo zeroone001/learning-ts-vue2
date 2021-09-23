@@ -1,5 +1,7 @@
 # 实例方法篇-renderMixin
 
+instance/render.js
+
 ```javascript
 export function renderMixin (Vue) {
     Vue.prototype.$nextTick = function (fn) {}
@@ -44,15 +46,38 @@ JS执行是单线程的，是基于事件循环的
 事件循环分为以下步骤：
 
 1. 所有同步任务都在主线程上执行，形成一个执行栈；（stack）
-2. 
+2. 主线程之外还有一个任务队列（task queue），只要异步任务有了运行结果，就在任务队列中放置一个事件
+3. 一旦执行栈中所有的同步任务完成，系统就会读取任务队列，看看里面有哪些事件，于是结束等待，开始执行
+4. 主线程不断的重复上面三个步骤
+
+任务队列中存放的是一个个的task，task分为两类，分别是宏任务，和微任务
+
+每执行完一个个宏任务之后，都要去清空该宏任务对应的微任务队列中的【所有】的微任务
+
+```javascript
+for (macroTask of macroTaskQueue) {
+    // 1. 处理当前的宏任务
+    handleMacroTask();
+
+    // 2. 处理对应的所有微任务
+    for (microTask of microTaskQueue) {
+        handleMicroTask(microTask);
+    }
+}
+```
+
+* 宏任务(`macro task`) 有 `setTimeout`、`MessageChannel`、`postMessage`、`setImmediate`；
+* 微任务(`micro task`）有`MutationObsever` 和 `Promise.then`。
 
 
 
+##  内部源码
+
+nextTick 位于 源码的`src/core/util/next-tick.js`中
 
 
 
-
-
+#### 能力检测
 
 
 
