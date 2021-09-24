@@ -79,9 +79,115 @@ nextTick 位于 源码的`src/core/util/next-tick.js`中
 
 #### 能力检测
 
+`Vue` 在内部对异步队列尝试使用原生的 `Promise.then`、`MutationObserver` 和 `setImmediate`，如果执行环境不支持，则会采用 `setTimeout(fn, 0)` 代替
+
+宏任务耗费的时间是大于微任务的，所以在浏览器支持的情况下，优先使用微任务。
+
+```js
+export let isUsingMicroTask = false
+
+const callbacks = []
+let pending = false
+
+function flushCallbacks () {
+  pending = false
+  const copies = callbacks.slice(0)
+  callbacks.length = 0
+  for (let i = 0; i < copies.length; i++) {
+    copies[i]()
+  }
+}
+
+let timerFunc
+/* 
+  Vue 在内部对异步队列尝试使用原生的 Promise.then、MutationObserver 和 setImmediate，
+  如果执行环境不支持，则会采用 setTimeout(fn, 0) 代替
+  宏任务耗费的时间是大于微任务的，所以在浏览器支持的情况下，优先使用微任务。如果浏览器不支持微任务，使用宏任务；
+  但是，各种宏任务之间也有效率的不同，需要根据浏览器的支持情况，使用不同的宏任务
+*/
+if (typeof Promise !== 'undefined' && isNative(Promise)) {
+  /* 微任务 */
+  const p = Promise.resolve()
+  timerFunc = () => {
+    p.then(flushCallbacks)
+    if (isIOS) setTimeout(noop)
+  }
+  isUsingMicroTask = true
+} else if (!isIE && typeof MutationObserver !== 'undefined' && (
+  isNative(MutationObserver) ||
+  // PhantomJS and iOS 7.x
+  MutationObserver.toString() === '[object MutationObserverConstructor]'
+)) {
+  /* 微任务 */
+  let counter = 1
+  const observer = new MutationObserver(flushCallbacks)
+  const textNode = document.createTextNode(String(counter))
+  observer.observe(textNode, {
+    characterData: true
+  })
+  timerFunc = () => {
+    counter = (counter + 1) % 2
+    textNode.data = String(counter)
+  }
+  isUsingMicroTask = true
+} else if (typeof setImmediate !== 'undefined' && isNative(setImmediate)) {
+  /* 宏任务 */
+  timerFunc = () => {
+    setImmediate(flushCallbacks)
+  }
+} else {
+  /* 宏任务 */
+  timerFunc = () => {
+    setTimeout(flushCallbacks, 0)
+  }
+}
+```
 
 
 
+#### 执行回调队列
+
+```js
+export function nextTick (cb?: Function, ctx?: Object) {
+  let _resolve
+  callbacks.push(() => {
+    if (cb) {
+      try {
+        cb.call(ctx)
+      } catch (e) {
+        handleError(e, ctx, 'nextTick')
+      }
+    } else if (_resolve) {
+      _resolve(ctx)
+    }
+  })
+  if (!pending) {
+    pending = true
+    timerFunc()
+  }
+  // $flow-disable-line
+  if (!cb && typeof Promise !== 'undefined') {
+    return new Promise(resolve => {
+      _resolve = resolve
+    })
+  }
+}
+```
 
 
 
+这是当 `nextTick` 不传 `cb` 参数的时候，提供一个 Promise 化的调用，比如：
+
+```js
+this.$nextTick().then(() => {
+    consloe.log(1);
+});
+```
+
+1. 如何保证只在接收第一个回调函数时执行异步方法？
+
+   `nextTick`源码中使用了一个异步锁的概念，即接收第一个回调函数时，先关上锁，执行异步方法。此时，浏览器处于等待执行完同步代码就执行异步代码的情况。
+
+2. 执行 `flushCallbacks` 函数时为什么需要备份回调函数队列？执行的也是备份的回调函数队列？
+
+因为，会出现这么一种情况：`nextTick` 的回调函数中还使用 `nextTick`。如果 `flushCallbacks` 不做特殊处理，直接循环执行回调函数，会导致里面`nextTick` 中的回调函数会进入回调队列。
