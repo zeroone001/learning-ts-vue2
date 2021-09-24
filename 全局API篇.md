@@ -160,7 +160,7 @@ Vue.directive、Vue.filter 和 Vue.component 这三个是写在一起的，而�
 Vue.directive( id, [definition] )
 ```
 
-
+注册指令是指将定义好的指令放在某个位置，获取指令是根据指令ID从存放指令的位置来读取指令
 
 作用： 注册或获取全局指令。
 
@@ -208,6 +208,190 @@ ASSET_TYPES.forEach(type => {
 
 ```js
 // initAssetRegisters
+/* 总的来说，是做了一个存储指令的操作，真正执行不是在这里 */
+export function initAssetRegisters (Vue: GlobalAPI) {
+  /**
+   * Create asset registration methods.
+   */
+  ASSET_TYPES.forEach(type => {
 
+    Vue[type] = function (
+      id: string,
+      definition: Function | Object
+    ): Function | Object | void {
+
+      /* 
+        definition 没有传入的话，就是获取指令 
+        传入了的话，就是注册指令
+      */
+      if (!definition) {
+        return this.options[type + 's'][id]
+      } else {
+        /* 注册指令 */
+        if (type === 'directive' && typeof definition === 'function') {
+          /* 注册完成指令， */
+          definition = { bind: definition, update: definition }
+        }
+
+        /* 
+          this.components[id] = APP;
+          在options上存储指令
+        */
+        this.options[type + 's'][id] = definition
+        return definition
+      }
+    }
+  })
+}
 ```
+
+## Vue.filter
+
+```javascript
+Vue.filter( id, [definition] )
+```
+
+作用：
+
+注册或者获取全局的过滤器
+
+```javascript
+// 注册
+Vue.filter('my-filter', function (value) {
+  // 返回处理后的值
+})
+
+// getter，返回已注册的过滤器
+var myFilter = Vue.filter('my-filter')
+```
+
+该API是用来注册或获取全局过滤器的，接收两个参数：过滤器`id`和过滤器的定义。同全局指令一样，注册过滤器是将定义好的过滤器存放在某个位置，获取过滤器是根据过滤器`id`从存放过滤器的位置来读取过滤器
+
+### 源码分析
+
+```js
+/* 
+    定义了一个options空对象
+    options里面定义了 filters 空对象
+    filters 就是用来存放指令的位置
+  */
+  Vue.options = Object.create(null)
+  ASSET_TYPES.forEach(type => {
+    Vue.options[type + 's'] = Object.create(null)
+  })
+
+ASSET_TYPES.forEach(type => {
+
+    Vue[type] = function (
+      id: string,
+      definition: Function | Object
+    ): Function | Object | void {
+
+      /* 
+        definition 没有传入的话，就是获取指令 
+        传入了的话，就是注册指令
+      */
+      if (!definition) {
+        return this.options[type + 's'][id]
+      } else {
+        /* 
+          this.components[id] = APP;
+          在options上存储指令
+          filter直接存进去
+        */
+        this.options[type + 's'][id] = definition
+        return definition
+      }
+    }
+  })
+```
+
+
+
+### Vue.component
+
+注册或获取全局组件。注册还会自动使用给定的`id`设置组件的名称
+
+实际上市存了Vue的子类
+
+```javascript
+// 注册组件，传入一个扩展过的构造器
+Vue.component('my-component', Vue.extend({ /* ... */ }))
+
+// 注册组件，传入一个选项对象 (自动调用 Vue.extend)
+Vue.component('my-component', { /* ... */ })
+
+// 获取注册的组件 (始终返回构造器)
+var MyComponent = Vue.component('my-component')
+```
+
+### 源码分析
+
+```js
+/* 
+    定义了一个options空对象
+    options里面定义了 filters 空对象
+    filters 就是用来存放指令的位置
+  */
+  Vue.options = Object.create(null)
+  ASSET_TYPES.forEach(type => {
+    Vue.options[type + 's'] = Object.create(null)
+  })
+
+/* 总的来说，是做了一个存储指令的操作，真正执行不是在这里 */
+export function initAssetRegisters (Vue: GlobalAPI) {
+  /**
+   * Create asset registration methods.
+   */
+  ASSET_TYPES.forEach(type => {
+
+    Vue[type] = function (
+      id: string,
+      definition: Function | Object
+    ): Function | Object | void {
+
+      /* 
+        definition 没有传入的话，就是获取指令 
+        传入了的话，就是注册指令
+      */
+      if (!definition) {
+        return this.options[type + 's'][id]
+      } else {
+        /* istanbul ignore if */
+        if (process.env.NODE_ENV !== 'production' && type === 'component') {
+          /* 对组件的名字做了一个校验 */
+          validateComponentName(id)
+        }
+
+        /* 
+          Vue.component
+          对component做处理
+          如果是个对象，那么使用Vue.extend 将其变成Vue的子类
+        */
+        if (type === 'component' && isPlainObject(definition)) {
+          // 优先使用name
+          definition.name = definition.name || id
+          definition = this.options._base.extend(definition)
+        }
+
+        /* 
+          this.components[id] = APP;
+          在options上存储指令
+          filter直接存进去
+        */
+        this.options[type + 's'][id] = definition
+        return definition
+      }
+    }
+  })
+}
+```
+
+
+
+## directive、filter、component小结
+
+
+
+这三个方法的定义都是写在一起的
 
