@@ -1,4 +1,4 @@
-# 实例方法篇-renderMixin
+# 实例方法篇-renderMixin vm.$nextTick
 
 instance/render.js
 

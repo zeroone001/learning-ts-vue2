@@ -2,6 +2,21 @@
 
 ## 
 
+```js
+export function stateMixin (Vue: Class<Component>) {
+    Object.defineProperty(Vue.prototype, '$data', dataDef)
+    Object.defineProperty(Vue.prototype, '$props', propsDef)
+
+    Vue.prototype.$set = set
+    Vue.prototype.$delete = del
+    Vue.prototype.$watch = function (){}
+}
+```
+
+
+
+
+
 ## $watch
 
 在  `./computed和watch的区别.md` 里面

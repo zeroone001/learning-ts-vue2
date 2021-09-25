@@ -1,5 +1,13 @@
 # 全局API
 
+`Vue.extend`、`Vue.nextTick`、`Vue.set`、
+
+`Vue.delete`、`Vue.use`、`Vue.mixin`、
+
+`Vue.component`、`Vue.directive`、`Vue.filter`
+
+`Vue.observable`、`Vue.version
+
 实例方法篇是，将方法放在Vue.prototype 也就是VUE原型上，
 
 然而，全局API是指，直接在Vue上挂载方法
@@ -7,7 +15,7 @@
 全局API一共有12个，分别是
 
 ```tex
-`Vue.extend`、`Vue.nextTick`、`Vue.set`、`Vue.delete`、`Vue.directive`、`Vue.filter`、`Vue.component`、`Vue.use`、`Vue.mixin`、`Vue.observable`、`Vue.version
+
 ```
 
 ## Vue.extend
