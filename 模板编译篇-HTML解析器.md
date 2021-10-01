@@ -400,3 +400,61 @@ function parseStartTag () {
 
 ### 解析结束标签
 
+结束标签的解析要比解析开始标签容易多了，因为它不需要解析什么属性，只需要判断剩下的模板字符串是否符合结束标签的特征，如果是，就将结束标签名提取出来，再调用4个钩子函数中的`end`函数就好了。
+
+```js
+/* 解析结束标签 */
+        const endTagMatch = html.match(endTag)
+        /* 如果endTagMatch不是null */
+        if (endTagMatch) {
+          const curIndex = index
+          advance(endTagMatch[0].length)
+          /* 主要是调用end()函数 */
+          parseEndTag(endTagMatch[1], curIndex, index)
+          continue
+        }
+```
+
+### 解析文本
+
+```js
+let text, rest, next
+      /* 从开头到第一个<出现的位置就都是文本内容了 */
+      if (textEnd >= 0) {
+        rest = html.slice(textEnd)
+        while (
+          !endTag.test(rest) &&
+          !startTagOpen.test(rest) &&
+          !comment.test(rest) &&
+          !conditionalComment.test(rest)
+        ) {
+          /**
+           * 用'<'以后的内容rest去匹配endTag、startTagOpen、comment、conditionalComment
+           * 如果都匹配不上，表示'<'是属于文本本身的内容
+           */
+          // 在'<'之后查找是否还有'<'
+          // 后面这个1代表要找第二个 ‘<’
+          next = rest.indexOf('<', 1)
+          if (next < 0) break
+          textEnd += next
+          rest = html.slice(textEnd)
+        } // 
+        // 开始到< 之间是纯文本
+        text = html.substring(0, textEnd)
+      }
+      // 整个模板字符串里没有找到`<`,说明整个模板字符串都是文本
+      if (textEnd < 0) {
+        text = html
+      }
+
+      if (text) {
+        advance(text.length)
+      }
+      // 把截取出来的text转化成textAST
+      if (options.chars && text) {
+        options.chars(text, index - text.length, index)
+      }
+```
+
+### 如何保证AST节点层级关系
+
