@@ -1,4 +1,10 @@
-# 模板编译篇-HTML解析器
+# 模板编译篇-HTML解析器，生成抽象语法树AST
+
+
+
+这一阶段的目的，用解析器将模板字符串解析成抽象语法树AST
+
+
 
 ## html-parser
 
@@ -413,7 +419,95 @@ function parseStartTag () {
           parseEndTag(endTagMatch[1], curIndex, index)
           continue
         }
+
 ```
+
+parseEndTag函数
+
+```js
+/* 
+    解析结束标签
+    这个函数主要是调用了end函数
+    tagName: 结束标签名
+    start: 结束标签在html字符串中的起始位置
+    end: 结束标签在html字符串中的结束位置
+    这三个参数都是可选的，根据传参的不同，功能也不同
+    第一种是三个参数都传递，用于处理普通的结束标签
+    第二种是只传递tagName
+    第三种是三个参数都不传递，用于处理栈中剩余未处理的标签
+  */
+  function parseEndTag (tagName, start, end) {
+    let pos, lowerCasedTagName
+    if (start == null) start = index
+    if (end == null) end = index
+
+    // Find the closest opened tag of the same type
+    /* 
+      如果tagName存在，那么就从后往前遍历栈，
+      在栈中寻找与tagName相同的标签并记录其所在的位置pos，
+      如果tagName不存在，则将pos置为0
+     */
+    if (tagName) {
+      lowerCasedTagName = tagName.toLowerCase()
+      for (pos = stack.length - 1; pos >= 0; pos--) {
+        if (stack[pos].lowerCasedTag === lowerCasedTagName) {
+          break
+        }
+      }
+    } else {
+      // If no tag name is provided, clean shop
+      pos = 0
+    }
+    /* 接着当pos>=0时，开启一个for循环，
+    从栈顶位置从后向前遍历直到pos处，如果发现stack栈中存在索引大于pos的元素，
+    那么该元素一定是缺少闭合标签的。
+    这是因为在正常情况下，stack栈的栈顶元素应该和当前的结束标签tagName 匹配，
+    也就是说正常的pos应该是栈顶位置，后面不应该再有元素，如果后面还有元素，
+    那么后面的元素就都缺少闭合标签 
+    那么这个时候如果是在非生产环境会抛出警告，告诉你缺少闭合标签 */
+    if (pos >= 0) {
+      // Close all the open elements, up the stack
+      for (let i = stack.length - 1; i >= pos; i--) {
+        if (process.env.NODE_ENV !== 'production' &&
+          (i > pos || !tagName) &&
+          options.warn
+        ) {
+          options.warn(
+            `tag <${stack[i].tag}> has no matching end tag.`,
+            { start: stack[i].start, end: stack[i].end }
+          )
+        }
+        if (options.end) {
+          options.end(stack[i].tag, start, end)
+        }
+      }
+
+      // Remove the open elements from the stack
+      /* 最后把pos位置以后的元素都从stack栈中弹出，
+      以及把lastTag更新为栈顶元素 */
+      stack.length = pos
+      lastTag = pos && stack[pos - 1].tag
+
+      /* 
+      浏览器会自动把</br>标签解析为正常的 <br>标签，而对于</p>浏览器则自动将其补全为<p></p>，
+      所以Vue为了与浏览器对这两个标签的行为保持一致，故对这两个便签单独判断处理
+       */
+    } else if (lowerCasedTagName === 'br') {
+      if (options.start) {
+        options.start(tagName, [], true, start, end)
+      }
+    } else if (lowerCasedTagName === 'p') {
+      if (options.start) {
+        options.start(tagName, [], false, start, end)
+      }
+      if (options.end) {
+        options.end(tagName, start, end)
+      }
+    }
+  }
+```
+
+
 
 ### 解析文本
 
@@ -458,3 +552,10 @@ let text, rest, next
 
 ### 如何保证AST节点层级关系
 
+`Vue`在`HTML`解析器的开头定义了一个栈`stack`，这个栈的作用就是用来维护`AST`节点层级的，那么它是怎么维护的呢？通过前文我们知道，`HTML`解析器在从前向后解析模板字符串时，每当遇到开始标签时就会调用`start`钩子函数，那么在`start`钩子函数内部我们可以将解析得到的开始标签推入栈中，而每当遇到结束标签时就会调用`end`钩子函数，那么我们也可以在`end`钩子函数内部将解析得到的结束标签所对应的开始标签从栈中弹出
+
+![img](https://nlrx-wjc.github.io/Blog/assets/img/7.6ca1dbf0.png)
+
+### 总结
+
+一边解析不同的内容一边调用对应的钩子函数生成对应的`AST`节点，最终完成将整个模板字符串转化成`AST`
